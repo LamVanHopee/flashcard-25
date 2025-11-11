@@ -82,12 +82,12 @@ jobs:
         run: flutter pub get
 
       - name: 🏗️ Build Development APK
-        run: flutter build apk --target ./lib/main_development.dart --flavor development --debug
+        run: flutter build apk --debug
 
       - name: 💾 Save Merged Manifest
         run: |
           mkdir -p manifest_snapshot
-          unzip build/app/outputs/flutter-apk/app-development-debug.apk "AndroidManifest.xml" -d manifest_snapshot/
+          unzip build/app/outputs/flutter-apk/app-debug.apk "AndroidManifest.xml" -d manifest_snapshot/
           mv manifest_snapshot/AndroidManifest.xml manifest_snapshot/merged_manifest.xml
 
       - name: 🔑 Decode Manifest from APK
@@ -95,7 +95,7 @@ jobs:
           wget https://bitbucket.org/iBotPeaches/apktool/downloads/apktool_2.9.3.jar -O /usr/local/bin/apktool.jar
           echo -e '#!/bin/bash\njava -jar /usr/local/bin/apktool.jar "$@"' > /usr/local/bin/apktool
           chmod +x /usr/local/bin/apktool
-          apktool d -o decoded_apk build/app/outputs/flutter-apk/app-development-debug.apk
+          apktool d -o decoded_apk build/app/outputs/flutter-apk/app-debug.apk
           cp decoded_apk/AndroidManifest.xml manifest_snapshot/decoded_manifest.xml
 
       - name: 📤 Upload Manifest Snapshots
