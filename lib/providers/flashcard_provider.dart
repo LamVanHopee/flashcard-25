@@ -35,6 +35,7 @@ class FlashcardProvider with ChangeNotifier {
   }
 
   Future<void> loadFlashcards() async {
+    print("Loading flashcards...");
     // var box = await Hive.openBox<Flashcard>('flashcards');
     // _flashcards = box.values.toList();
     // notifyListeners();
