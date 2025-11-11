@@ -192,7 +192,7 @@ class HomeScreen extends StatelessWidget {
                     if (provider.flashcards.isEmpty) {
                       return const Center(
                         child:
-                            Text('No flashcards yet. Add some to get started!'),
+                            Text('No flashcards yet. Add some to get started! :))'),
                       );
                     }
 
