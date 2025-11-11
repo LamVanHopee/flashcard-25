@@ -82,7 +82,7 @@ jobs:
         run: flutter pub get
 
       - name: 🏗️ Build Development APK
-        run: flutter build apk --target ./lib/main_development.dart --flavor development --debug
+        run: flutter build apk --debug
 
       - name: 💾 Save Merged Manifest
         run: |
