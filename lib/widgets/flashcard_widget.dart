@@ -51,6 +51,7 @@ class _FlashcardWidgetState extends State<FlashcardWidget>
   }
 
   void _flip() {
+    print("test");
     if (_controller.isAnimating) return;
     widget.onFlip();
     if (_showFront) {
