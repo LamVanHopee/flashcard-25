@@ -1,0 +1,141 @@
+name: Flutter CI Pipeline
+
+on:
+  pull_request:
+    branches:
+      - 'feature/**'
+      - 'fix/**'
+
+jobs:
+  lint_and_test:
+    name: 🧪 Flutter Lint & Test
+    runs-on: ubuntu-latest
+    container: ghcr.io/cirruslabs/flutter:3.24.5
+
+    steps:
+      - name: ⬇️ Checkout code
+        uses: actions/checkout@v4
+
+      # 🧠 Cache Flutter dependencies
+      - name: ⚙️ Cache Flutter pub
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-pub-${{ hashFiles('pubspec.lock') }}
+          restore-keys: ${{ runner.os }}-pub-
+
+      - name: 📦 Flutter pub get
+        run: |
+          flutter clean
+          flutter pub get
+
+      - name: 🔍 Lint (flutter analyze)
+        run: flutter analyze --write=flutter_lint_results.txt || true
+
+      - name: 🧪 Run Flutter Tests
+        run: flutter test --no-pub --coverage
+
+      - name: 📤 Upload Lint Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-lint-results
+          path: flutter_lint_results.txt
+
+      - name: 📤 Upload Test Coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-test-coverage
+          path: coverage/
+
+  build_apk_and_manifests:
+    name: 🏗️ Build APK & Extract Manifests
+    runs-on: ubuntu-latest
+    container: ghcr.io/cirruslabs/flutter:3.24.5
+    needs: lint_and_test
+
+    steps:
+      - name: ⬇️ Checkout code
+        uses: actions/checkout@v4
+
+      # ⚙️ Cache dependencies
+      - name: ⚙️ Cache Flutter pub
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-pub-${{ hashFiles('pubspec.lock') }}
+          restore-keys: ${{ runner.os }}-pub-
+
+      - name: ⚙️ Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: ~/.gradle
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: ${{ runner.os }}-gradle-
+
+      - name: 🛠️ Install Android Tools
+        run: |
+          apt-get update && apt-get install -y unzip wget
+          export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+          yes | sdkmanager "platforms;android-35"
+
+      - name: 📦 Flutter pub get
+        run: flutter pub get
+
+      - name: 🏗️ Build Development APK
+        run: flutter build apk --debug
+
+      - name: 💾 Save Merged Manifest
+        run: |
+          mkdir -p manifest_snapshot
+          unzip build/app/outputs/flutter-apk/app-debug.apk "AndroidManifest.xml" -d manifest_snapshot/
+          mv manifest_snapshot/AndroidManifest.xml manifest_snapshot/merged_manifest.xml
+
+      - name: 🔑 Decode Manifest from APK
+        run: |
+          wget https://bitbucket.org/iBotPeaches/apktool/downloads/apktool_2.9.3.jar -O /usr/local/bin/apktool.jar
+          echo -e '#!/bin/bash\njava -jar /usr/local/bin/apktool.jar "$@"' > /usr/local/bin/apktool
+          chmod +x /usr/local/bin/apktool
+          apktool d -o decoded_apk build/app/outputs/flutter-apk/app-debug.apk
+          cp decoded_apk/AndroidManifest.xml manifest_snapshot/decoded_manifest.xml
+
+      - name: 📤 Upload Manifest Snapshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: manifest-snapshots
+          path: manifest_snapshot/
+
+  run_danger:
+    name: 🚨 Run Danger
+    runs-on: ubuntu-latest
+    container: node:20
+    needs: [lint_and_test, build_apk_and_manifests]
+
+    steps:
+      - name: ⬇️ Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📥 Download Lint Results
+        uses: actions/download-artifact@v4
+        with:
+          name: flutter-lint-results
+
+      - name: 📥 Download Manifest Snapshots
+        uses: actions/download-artifact@v4
+        with:
+          name: manifest-snapshots
+          path: manifest_snapshot/
+
+      - name: ⚙️ Cache NPM
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('package-lock.json') }}
+          restore-keys: ${{ runner.os }}-npm-
+
+      - name: 📦 Install Node Dependencies
+        run: npm ci
+
+      - name: 🚨 Run Danger
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx danger ci

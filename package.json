@@ -1,0 +1,9 @@
+{
+  "name": "danger-runner",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "danger": "^11.3.0",
+    "diff": "^5.1.0"
+  }
+}
