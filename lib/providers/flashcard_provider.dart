@@ -35,16 +35,17 @@ class FlashcardProvider with ChangeNotifier {
   }
 
   Future<void> loadFlashcards() async {
-    var box = await Hive.openBox<Flashcard>('flashcards');
-    _flashcards = box.values.toList();
-    notifyListeners();
+    print("Loading flashcards...");
+    // var box = await Hive.openBox<Flashcard>('flashcards');
+    // _flashcards = box.values.toList();
+    // notifyListeners();
   }
 
   Future<void> addFlashcard(Flashcard flashcard) async {
-    var box = await Hive.openBox<Flashcard>('flashcards');
-    await box.add(flashcard);
-    _flashcards.add(flashcard);
-    notifyListeners();
+    // var box = await Hive.openBox<Flashcard>('flashcards');
+    // await box.add(flashcard);
+    // _flashcards.add(flashcard);
+    // notifyListeners();
   }
 
   Future<void> updateFlashcard(Flashcard flashcard) async {
